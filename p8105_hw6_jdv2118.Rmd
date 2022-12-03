@@ -1,0 +1,6 @@
+---
+title: "p8105_hw6_jdv2118"
+author: "Justin Vargas"
+date: "2022-12-03"
+output: github_document
+---
