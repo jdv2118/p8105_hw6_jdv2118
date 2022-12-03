@@ -53,12 +53,12 @@ victim_sex != "Unknown") %>%
 ```
 
 ```{r}
-baltimore_data =
+baltimore_glm =
   homicide_data %>% 
   filter(city_state == "Baltimore, MD")
 
-glm(result ~ victim_age + victim_race + victim_sex, 
-    data = baltimore_data,
+glm(result ~ victim_age + victim_sex + victim_race, 
+    data = baltimore_glm,
     family = binomial()) %>% 
   broom::tidy() %>% 
   mutate(
@@ -68,11 +68,44 @@ glm(result ~ victim_age + victim_race + victim_sex,
   ) %>% 
   select(term, OR, starts_with("ci")) %>% 
   knitr::kable(digits = 3)
-
-baltimore_data
 ```
 
 ```{r}
+cities_glm = 
+  homicide_data %>% 
+  nest(data = -city_state) %>% 
+  mutate(
+    city_models = 
+      map(.x = data, ~glm(result ~ victim_age + victim_sex + victim_race, data = .x, family = binomial())),
+    result = map(city_models, broom::tidy)
+  ) %>% 
+  select(city_state, result) %>% 
+  unnest(result) %>% 
+  mutate(
+    OR = exp(estimate),
+    ci_lower = exp(estimate - 1.96 * std.error),
+    ci_upper = exp(estimate + 1.96 * std.error)
+  ) %>% 
+  select(city_state, term, OR, starts_with("ci")) %>%
+  filter(term == "victim_sexMale")
+  
+cities_glm
+```
 
+```{r}
+cities_plot =
+  cities_glm %>% 
+  mutate(city_state = fct_reorder(city_state, OR)) %>% 
+  ggplot(aes(x = city_state, y = OR)) + 
+  geom_point() + 
+  geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper)) + 
+  labs(
+    x = "City and State Names",
+    y = "Odds Ratio",
+    title = "The Odds Ratio for Each City and State"
+  ) + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+cities_plot
 ```
 
