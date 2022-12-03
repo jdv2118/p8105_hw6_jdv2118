@@ -1,6 +1,56 @@
 ---
 title: "p8105_hw6_jdv2118"
 author: "Justin Vargas"
-date: "2022-12-03"
 output: github_document
 ---
+
+# Loading Libraries and Setting Graphic Settings
+
+```{r}
+library(tidyverse)
+
+library(modelr)
+
+knitr::opts_chunk$set(
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = "90%"
+)
+
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis"
+)
+
+scale_colour_discrete = scale_color_viridis_d
+
+scale_fill_discrete = scale_fill_viridis_d
+```
+
+# Problem 1
+
+```{r}
+homicide_data = 
+  read_csv("data/homicide-data.csv") %>% 
+  mutate(
+    city_state = str_c(city, state, sep = ", "),
+    result = case_when(
+      disposition == "Closed without arrest" ~ 0,
+      disposition == "Closed by arrest"      ~ 1,
+      disposition == "Open/No arrest"        ~ 0
+      ),
+    victim_age = as.numeric(victim_age)
+  ) %>% 
+  filter(city_state != "Dallas, TX",
+         city_state != "Phoenix, AZ",
+         city_state != "Kansas City, MO",
+         city_state != "Tulsa, AL",
+victim_race %in% c("White", "Black")) %>% 
+  select(city_state, result, victim_age, victim_race, victim_sex)
+```
+
+```{r}
+
+```
+
