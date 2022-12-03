@@ -166,3 +166,32 @@ cities_plot =
 cities_plot
 ```
 
+# Problem 3
+
+```{r}
+birthweight_data =
+  read_csv("data/birthweight.csv") %>%
+  mutate(
+    babysex = as.factor(babysex),
+    babysex = recode(babysex, "1" = "Male", "2" = "Female"),
+    frace = as.factor(frace),
+    frace = recode(frace, "1" = "White", "2" = "Black", "3" = "Asian", "4" = "Puerto Rican", "8" = "Other",      "9" = "Unknown"),
+    malform = as.factor(malform),
+    malform = recode(malform, "0" = "Absent", "1" = "Present"),
+    mrace = as.factor(mrace),
+    mrace = recode(mrace, "1" = "White", "2" = "Black", "3" = "Asian", "4" = "Puerto Rican", "8" = "Other")
+  )
+
+head(birthweight_data)
+
+sum(is.na(birthweight_data))
+```
+
+```{r}
+birthweight_full_model = lm(bwt ~ ., data = birthweight_data)
+
+birthweight_stepwise_model = MASS::stepAIC(birthweight_full_model, direction = "both", trace = FALSE) 
+
+summary(birthweight_stepwise_model)
+```
+
