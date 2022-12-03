@@ -190,8 +190,22 @@ sum(is.na(birthweight_data))
 ```{r}
 birthweight_full_model = lm(bwt ~ ., data = birthweight_data)
 
-birthweight_stepwise_model = MASS::stepAIC(birthweight_full_model, direction = "both", trace = FALSE) 
+birthweight_full_model
+```
 
-summary(birthweight_stepwise_model)
+```{r}
+birthweight_plot =
+birthweight_data %>% 
+  modelr::add_predictions(., birthweight_full_model) %>% 
+  modelr::add_residuals(., birthweight_full_model) %>% 
+  ggplot(aes(x = pred, y = resid)) +
+  geom_point(alpha = .2) +
+  labs(
+    x = "Fitted Values",
+    y = "Residuals",
+    title = "Residuals vs Fitted Values"
+  )
+
+birthweight_plot
 ```
 
