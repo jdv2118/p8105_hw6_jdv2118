@@ -18,6 +18,7 @@ knitr::opts_chunk$set(
 )
 
 theme_set(theme_minimal() + theme(legend.position = "bottom"))
+
 options(
   ggplot2.continuous.colour = "viridis",
   ggplot2.continuous.fill = "viridis"
@@ -28,7 +29,7 @@ scale_colour_discrete = scale_color_viridis_d
 scale_fill_discrete = scale_fill_viridis_d
 ```
 
-# Problem 1
+# Problem 2
 
 ```{r}
 homicide_data = 
@@ -46,8 +47,29 @@ homicide_data =
          city_state != "Phoenix, AZ",
          city_state != "Kansas City, MO",
          city_state != "Tulsa, AL",
-victim_race %in% c("White", "Black")) %>% 
+victim_race %in% c("White", "Black"),
+victim_sex != "Unknown") %>% 
   select(city_state, result, victim_age, victim_race, victim_sex)
+```
+
+```{r}
+baltimore_data =
+  homicide_data %>% 
+  filter(city_state == "Baltimore, MD")
+
+glm(result ~ victim_age + victim_race + victim_sex, 
+    data = baltimore_data,
+    family = binomial()) %>% 
+  broom::tidy() %>% 
+  mutate(
+    OR = exp(estimate),
+    ci_lower = exp(estimate - 1.96 * std.error),
+    ci_upper = exp(estimate + 1.96 * std.error)
+  ) %>% 
+  select(term, OR, starts_with("ci")) %>% 
+  knitr::kable(digits = 3)
+
+baltimore_data
 ```
 
 ```{r}
