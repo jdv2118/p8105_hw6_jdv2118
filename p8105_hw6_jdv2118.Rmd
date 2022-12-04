@@ -6,7 +6,7 @@ output: github_document
 
 # Loading Libraries and Setting Graphic Settings
 
-```{r}
+```{r, message = FALSE}
 library(tidyverse)
 
 library(viridis)
@@ -88,7 +88,9 @@ The point of this is not to say you should always use the bootstrap -- it's poss
 
 # Problem 2
 
-```{r}
+## Cleaning and Wrangling Data
+
+```{r, message = FALSE, warning = FALSE}
 homicide_data = 
   read_csv("data/homicide-data.csv") %>% 
   mutate(
@@ -107,7 +109,13 @@ homicide_data =
 victim_race %in% c("White", "Black"),
 victim_sex != "Unknown") %>% 
   select(city_state, result, victim_age, victim_race, victim_sex)
+
+head(homicide_data)
 ```
+
+The code above is used to clean and wrangle the data.
+
+## Fitting Logistic Regression For Baltimore, MD
 
 ```{r}
 baltimore_glm =
@@ -119,13 +127,17 @@ glm(result ~ victim_age + victim_sex + victim_race,
     family = binomial()) %>% 
   broom::tidy() %>% 
   mutate(
-    OR = exp(estimate),
+    or = exp(estimate),
     ci_lower = exp(estimate - 1.96 * std.error),
     ci_upper = exp(estimate + 1.96 * std.error)
   ) %>% 
-  select(term, OR, starts_with("ci")) %>% 
+  select(term, or, starts_with("ci")) %>% 
   knitr::kable(digits = 3)
 ```
+
+The code above is used to fit a logistic regression with resolved vs unresolved as the outcome and victim age, sex and race as predictors for the city of Baltimore, MD.
+
+## Fitting Logistic Regression For Each City
 
 ```{r}
 cities_glm = 
@@ -149,6 +161,10 @@ cities_glm =
 cities_glm
 ```
 
+The code above is used to fit the same logistic regression for each city in the dataset.
+
+## Plot of ORs and CIs for Each City
+
 ```{r}
 cities_plot =
   cities_glm %>% 
@@ -166,9 +182,13 @@ cities_plot =
 cities_plot
 ```
 
+Based on the plot, New York, NY, has the lowest odds ratio, while Albuquerque, NM, has the highest odds ratio.  It is important to note that Albuquerque, NM, appears to have the widest confidence interval, while Chicago, IL, has the smallest confidence interval.  Ultimately, there is overlap among the confidence intervals for the various cities.
+
 # Problem 3
 
-```{r}
+## Loading and Cleaning The Data
+
+```{r, message = FALSE}
 birthweight_data =
   read_csv("data/birthweight.csv") %>%
   mutate(
@@ -187,17 +207,25 @@ head(birthweight_data)
 sum(is.na(birthweight_data))
 ```
 
-```{r}
-birthweight_full_model = lm(bwt ~ ., data = birthweight_data)
+The code above is used to load and clean the data.  There is no missing data.
 
-birthweight_full_model
+## My Proposed Model
+
+```{r}
+birthweight_model = lm(bwt ~ babysex + fincome + gaweeks + malform + smoken + wtgain, data = birthweight_data)
+
+birthweight_model
 ```
+
+My proposed model consists of the following variables: babysex, fincome, gaweeks, malform, smoke, and wtgain.  I hypothesize that these variables underly birthweight, hence why they were chosen for my proposed model. 
+
+## Plot of My Proposed Model
 
 ```{r}
 birthweight_plot =
 birthweight_data %>% 
-  modelr::add_predictions(., birthweight_full_model) %>% 
-  modelr::add_residuals(., birthweight_full_model) %>% 
+  modelr::add_predictions(birthweight_model) %>% 
+  modelr::add_residuals(birthweight_model) %>% 
   ggplot(aes(x = pred, y = resid)) +
   geom_point(alpha = .2) +
   labs(
@@ -208,4 +236,49 @@ birthweight_data %>%
 
 birthweight_plot
 ```
+
+The code above is used to create a plot of model residuals against fitted values for my proposed model.
+
+```{r}
+set.seed(1)
+
+cross_validation = 
+  crossv_mc(birthweight_data, 100) %>% 
+  mutate(
+    model_1 = map(.x = train, ~lm(bwt ~ blength + gaweeks, data = .x)),
+    model_2 = map(.x = train, ~lm(bwt ~ bhead * blength * babysex, data = .x)),
+    my_model = map(.x = train, ~lm(bwt ~ babysex + fincome + gaweeks + malform + smoken + wtgain, data = .x))
+  ) %>% 
+  mutate(
+    rmse_model_1 = map2_dbl(.x = model_1, .y = test, ~rmse(model = .x, data = .y)),
+    rmse_model_2 = map2_dbl(.x = model_2, .y = test, ~rmse(model = .x, data = .y)),
+    rmse_my_model = map2_dbl(.x = my_model, .y = test, ~rmse(model = .x, data = .y))
+  )
+
+cross_validation
+
+cross_validation_plot =
+ cross_validation %>% 
+  select(starts_with("rmse")) %>% 
+  pivot_longer(
+    everything(),
+    names_to = "model",
+    values_to = "rmse",
+    names_prefix = "rmse_"
+  ) %>% 
+  mutate(
+    model = recode(model, "model_1" = "Model 1", "model_2" = "Model 2", "my_model" = "My Model")
+  ) %>% 
+  ggplot(aes(x = model, y = rmse)) +
+  geom_violin() +
+  labs(
+    x = "Model",
+    y = "RMSE",
+    title = "RMSE by Model"
+  )
+
+cross_validation_plot
+```
+
+Based on the plot above, Model 2, which consists of the head circumference, length, sex, and all interactions, had the lowest RMSE of all of the models including my proposed model.  This indicates that it is the best model of all of the other models.  Model 1, which consists of length at birth and gestational age, has a RMSE that is greater than that of Model 2, but less than that of my proposed model.  This indicates that Model 2 is the second best model.  My proposed model has the highest RMSE, which indicates that it is the worst model of all the models. 
 
